@@ -139,6 +139,12 @@ def delete_order(conn, order_id):
         print("Ошибка при удалении заказа:", e)
         return 0
     
+def get_all_products(conn):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT id, name, price, quantity FROM products"
+        )
+        return cursor.fetchall()
     
 
 

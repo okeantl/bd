@@ -39,12 +39,19 @@ def main():
         print("Статистика:")
         for row in stats:
             print(row)
-
-        
+            
+                
         top_products = get_top_products(conn)
         print("Топ товаров:")
         for product in top_products:
             print(product)
+
+
+        print("\nВсе товары:")
+        products = get_all_products(conn)
+        for p in products:
+            print(p)
+
 
     finally:
         conn.close()

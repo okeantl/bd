@@ -7,7 +7,7 @@ def get_orders_with_products(conn, user_id):
             select
                 orders.id as orders_id,
                 products.name as product_name,
-                product.price,
+                products.price,
                 order_items.quantity
             from orders
             join order_items on orders.id = order_items.order_id
@@ -15,26 +15,11 @@ def get_orders_with_products(conn, user_id):
             where orders.user_id = %s
             order by orders.id
             """,
-            (user_id)
+            (user_id,)
         )
         return cursor.fetchall()
 
 
-def get_orders_count_by_users(conn):
-    with conn.cursor() as cursor:
-        cursor.execute(
-            """
-            Select
-                users.id,
-                users.name,
-                count(orders.id) as orders_count
-            from users
-            left join orders on user.id = orders.user_id
-            group by users.id users.name
-            order by orders_count desc
-            """
-        )
-        return cursor.fetchall()
     
 def get_products_sorted_by_price(conn):
     with conn.cursor() as cursor:
@@ -86,6 +71,7 @@ def get_order_statistics(conn):
             """
         )
         return cursor.fetchall()
+    
     
 def get_top_products(conn, limit=5):
     with conn.cursor() as cursor:
