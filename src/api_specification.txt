@@ -1,0 +1,123 @@
+Products
+1. GET /products
+Описание: Получить список товаров
+Метод: GET
+Параметры: нет
+[
+  {
+    "id": 1,
+    "name": "Laptop",
+    "price": 1000,
+    "quantity": 10
+  }
+]
+2. GET /products/{id}
+Описание: Получить товар по ID
+Метод: GET
+Path parameters:
+id (integer)
+{
+  "id": 1,
+  "name": "Laptop",
+  "price": 1000,
+  "quantity": 10
+}
+Ошибка:
+{
+  "error": "Product not found"
+}
+3. POST /products
+Описание: Создать товар
+Метод: POST
+Запрос:
+{
+  "name": "Phone",
+  "price": 500,
+  "quantity": 20
+}
+Ответ:
+{
+  "id": 2,
+  "name": "Phone",
+  "price": 500,
+  "quantity": 20
+}
+4. PUT /products/{id}
+Описание: Обновить товар
+Метод: PUT
+Запрос:
+{
+  "name": "Updated Phone",
+  "price": 600,
+  "quantity": 15
+}
+Ответ:
+{
+  "message": "Product updated"
+}
+5. DELETE /products/{id}
+Описание: Удалить товар
+Метод: DELETE
+Ответ:
+{
+  "message": "Product deleted"
+}
+Orders
+6. GET /orders
+Описание: Получить список заказов
+Метод: GET
+Ответ:
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "total": 1500
+  }
+]
+7. POST /orders
+Описание: Создать заказ
+Метод: POST
+Запрос:
+{
+  "user_id": 1,
+  "items": [
+    {
+      "product_id": 1,
+      "quantity": 2
+    }
+  ]
+}
+Ответ:
+{
+  "id": 1,
+  "user_id": 1,
+  "total": 2000
+}
+User
+8. GET /users/{id}/orders
+Описание: Получить заказы пользователя
+Метод: GET
+Path parameters:
+id (integer)
+Ответ:
+[
+  {
+    "order_id": 1,
+    "total": 2000
+  }
+]
+Обработка ошибок:
+400 Bad Request
+{
+  "error": "Invalid request data"
+}
+
+404 Not Found
+{
+  "error": "Resource not found"
+}
+
+500 Internal Server Error
+{
+  "error": "Server error"
+}
