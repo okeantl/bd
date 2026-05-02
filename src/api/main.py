@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from fastapi import status
 from src.models.product import Product
 from src.models.order import Order
+from src.database.connection import connect_to_db, get_all_products
 
 class OrderCreate(BaseModel):
     user_id: int
@@ -15,6 +16,18 @@ class UserCreate(BaseModel):
     email: str
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup():
+    global conn
+    conn = connect_to_db()
+    
+    
+@app.on_event("shutdown")
+async def shutdown():
+    if conn:
+        conn.close()
+
 
 products = [
         {"id": 1, "name": "Ноутбук", "price": 50000},
@@ -41,18 +54,18 @@ def get_products(limit: int = 10, offset: int = 0):
         
         products = []
         for data in products_data:
-            product = Product(data[1], data[2], data[3])  # name, price, quantity
-            product.id = data[0]  # id
+            product = Product(data["name"], data["price"], data["quantity"])  # name, price, quantity
+            product.id = data["id"]  # id
             products.append(product.__dict__)
         
         
         total = len(products_data)
-        paginated = products[offset: offset + limit]
+        paginated_products  = products[offset: offset + limit]
         return {
-            "total": len(products),
+            "total": total,
             "limit": limit,
             "offset": offset,
-            "products": paginated
+            "products": paginated_products 
         }
     except Exception:
         raise HTTPException(status_code=500, detail="Server eror")
