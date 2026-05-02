@@ -6,6 +6,9 @@ from src.models.product import Product
 from src.models.order import Order
 from src.database.connection import connect_to_db, get_all_products
 
+
+
+
 class OrderCreate(BaseModel):
     user_id: int
     product_id: int
@@ -29,28 +32,12 @@ async def shutdown():
         conn.close()
 
 
-products = [
-        {"id": 1, "name": "Ноутбук", "price": 50000},
-        {"id": 2, "name": " Мышь", "price": 1500}
-]
-
-
-
-orders = []
-
-
-
-users = [
-        {"id": 1, "name": "Alex", "email": "Alex@test.ru"},
-        {"id": 2, "name": "Robert", "email": "Robert@test.tu"}
-    ]
-
 
 
 @app.get("/products")
 def get_products(limit: int = 10, offset: int = 0):
     try:
-        products_data = get_all_products(conn)
+        product = get_product_by_id(conn, product_id)
         
         products = []
         for data in products_data:
@@ -89,18 +76,21 @@ def get_product(product_id: int):
 @app.post("/orders")
 def create_order(order: OrderCreate):
     try:
-        new_id = max((o["id"] for o in orders), default=0) + 1
-            
-        new_order = {
-            "id": new_id,
-            "user_id": order.user_id,
-            "product_id": order.product_id,
-            "quantity": order.quantity
-        }
-        orders.append(new_order)
-        return new_order
+        user = get_user_by_id(conn, order.user_id)
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        return create_order(
+            conn,
+            order.user_id,
+            order.total
+        )
+
+    except HTTPException:
+        raise
     except Exception:
-        raise HTTPException(status_code=500, detail="Server error")
+        raise HTTPException(500, "Server error")
 
 
 
@@ -123,7 +113,7 @@ def get_user(user_id: int):
         user = next((u for u in users if u["id"] == user_id), None)
         
         if user is None:
-            raise HTTPException(status_code=404, detail=f"user с id={users_id} не найден")
+            raise HTTPException(status_code=404, detail=f"user с id={user_id} не найден")
         return user
 
     except Exception:
@@ -138,6 +128,9 @@ def create_user(user: UserCreate):
     try:
         new_id = max(u["id"] for u in users) + 1 if users else 1
         
+        if not user_exists:
+            raise HTTPException(404, detail="user not found")  
+        
         new_user = {
             "id": new_id,
             "name": user.name,
@@ -146,5 +139,90 @@ def create_user(user: UserCreate):
         users.append(new_user)
         return new_user
     
+      
     except Exception:
         raise HTTPException(status_code=500, detail="Server error")
+    
+    
+@app.put("/products/{product_id}")
+def update_product(product_id: int, product_data: dict):
+    try:
+        existing = get_product_by_id(conn, product_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Товар не найден")
+        
+        name = product_datap["name"]
+        price = product_data["price"]
+        quantity = product_data["quantity"]
+        
+        update_product(conn, product_id, name, pridce, quantity)
+        
+        product = Product(name=name, price=price, quantity=quantity)
+        product.id = product_id
+        return product.to_dict()
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+
+@app.delete("/products/{product_id}")
+def delete_product(product_id: int):
+    try:
+        existing = get_product_by_id(conn, product_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Товар не найден")
+        
+        delete_product(conn, product_id)
+        
+        return{"message": f"Товар с ID {product_id} успешно удален"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+def test_api():
+    client = TestClient(app)
+
+    # GET /products
+    response = client.get("/products")
+    assert response.status_code == 200
+    print("GET /products: OK")
+
+    # GET /products/1
+    response = client.get("/products/1")
+    assert response.status_code == 200
+    print("GET /products/1: OK")
+
+    # POST /orders (ИСПРАВЛЕНО)
+    response = client.post(
+        "/orders",
+        json={
+            "user_id": 1,
+            "total": 1500
+        }
+    )
+    assert response.status_code == 200 or response.status_code == 201
+    print("POST /orders: OK")
+
+    # GET /users
+    response = client.get("/users")
+    assert response.status_code == 200
+    print("GET /users: OK")
+
+    # POST /users
+    response = client.post(
+        "/users",
+        json={
+            "name": "Test",
+            "email": "test@mail.com"
+        }
+    )
+    assert response.status_code == 201
+    print("POST /users: OK")
+    
+if __name__ == "__main__":
+    test_api()

@@ -1,7 +1,7 @@
 import os
 import psycopg2
 
-from database import queries
+from src.database import queries
 
 def connect_to_db():
     try:
@@ -95,6 +95,8 @@ def create_order(conn, user_id, total):
         print("Ошибка при создании заказа:", e)
         return None
         
+        
+
 def get_user_orders(conn, user_id):
     try:
         with conn.cursor() as cursor:
@@ -144,11 +146,68 @@ def get_all_products(conn):
         cursor.execute(
             "SELECT id, name, price, quantity FROM products"
         )
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+
+        result = []
+        for row in rows:
+            result.append({
+                "id": row[0],
+                "name": row[1],
+                "price": row[2],
+                "quantity": row[3]
+            })    
+            
+        return result
+
+def get_product_by_id(conn, product_id):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT id, name, price, quantity FROM products WHERE id = %s",
+            (product_id,)
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        return None
+
+    return {
+        "id": row[0],
+        "name": row[1],
+        "price": row[2],
+        "quantity": row[3]
+    }
+
+
+
+def update_product(conn, product_id: int, name: str, price: float, quantity: int) -> bool:
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+            "update products set name = %s, price = %s, quantity = %s where id = %s returning id",
+            (name, price, quantity, product_id),
+            )
+            updated = cursor.fetchone() is not None
+
+        conn.commit()
+        return updated
+
+    except Exception:
+        conn.rollback()
+        raise
     
 
-
-
-
-
-
+def delete_product(conn, product_id: int) -> bool:
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+            "delete from products where id = %s RETURNING id",
+            (product_id,),
+            )
+            deleted = cursor.fetchone() is not None
+        
+        conn.commit()
+        return deleted        
+    except Exception:
+        conn.rollback()
+        raise
+    
