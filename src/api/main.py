@@ -11,8 +11,7 @@ from src.database.connection import connect_to_db, get_all_products
 
 class OrderCreate(BaseModel):
     user_id: int
-    product_id: int
-    quantity: int
+    total: float
     
 class UserCreate(BaseModel):
     name: str
@@ -37,7 +36,7 @@ async def shutdown():
 @app.get("/products")
 def get_products(limit: int = 10, offset: int = 0):
     try:
-        product = get_product_by_id(conn, product_id)
+        products_data = get_all_products(conn)
         
         products = []
         for data in products_data:
@@ -186,43 +185,69 @@ def delete_product(product_id: int):
     
 def test_api():
     client = TestClient(app)
-
-    # GET /products
-    response = client.get("/products")
-    assert response.status_code == 200
-    print("GET /products: OK")
-
-    # GET /products/1
-    response = client.get("/products/1")
-    assert response.status_code == 200
-    print("GET /products/1: OK")
-
-    # POST /orders (ИСПРАВЛЕНО)
+    
     response = client.post(
-        "/orders",
+        "/users",
         json={
-            "user_id": 1,
-            "total": 1500
+            "name": "Test User",
+            "email": "test@example.com"
         }
     )
-    assert response.status_code == 200 or response.status_code == 201
-    print("POST /orders: OK")
+    assert response.status_code == 201
+    user = response.json()
+    user_id = user["id"]
+    print("POST /users: OK")
 
-    # GET /users
+    
     response = client.get("/users")
     assert response.status_code == 200
     print("GET /users: OK")
 
-    # POST /users
-    response = client.post(
-        "/users",
+    
+    response = client.get("/products")
+    assert response.status_code == 200
+    products = response.json()["products"]
+
+    if not products:
+        print(" Нет товаров в БД — пропускаем тесты products")
+        return
+
+    product_id = products[0]["id"]
+    print("GET /products: OK")
+
+    
+    response = client.get(f"/products/{product_id}")
+    assert response.status_code == 200
+    print("GET /products/{id}: OK")
+
+    
+    response = client.put(
+        f"/products/{product_id}",
         json={
-            "name": "Test",
-            "email": "test@mail.com"
+            "name": "Updated",
+            "price": 999,
+            "quantity": 5
         }
     )
-    assert response.status_code == 201
-    print("POST /users: OK")
-    
+    assert response.status_code == 200
+    print("PUT /products/{id}: OK")
+
+   
+    response = client.post(
+        "/orders",
+        json={
+            "user_id": user_id,
+            "total": 1000
+        }
+    )
+    assert response.status_code in (200, 201)
+    print("POST /orders: OK")
+
+   
+    response = client.delete(f"/products/{product_id}")
+    assert response.status_code == 200
+    print("DELETE /products/{id}: OK")
+
+
 if __name__ == "__main__":
     test_api()
